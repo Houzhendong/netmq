@@ -1,0 +1,3 @@
+[submodule "src/AsyncIO"]
+	path = src/AsyncIO
+	url = https://github.com/Houzhendong/AsyncIO.git
