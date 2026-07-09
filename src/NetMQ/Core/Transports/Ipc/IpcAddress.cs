@@ -18,38 +18,65 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-using System.Diagnostics.CodeAnalysis;
+using System;
 using System.Net;
 
 namespace NetMQ.Core.Transports.Ipc
 {
+    /// <summary>
+    /// An IpcAddress resolves an ipc:// endpoint name to a filesystem path
+    /// backed by a Unix Domain Socket.
+    /// </summary>
     internal class IpcAddress : Address.IZAddress
     {
-        private string? m_name;
-
+        /// <summary>
+        /// Provide a string representation of this IpcAddress, in the form ipc://path.
+        /// </summary>
+        /// <returns>a string representation of this IpcAddress</returns>
         public override string ToString()
         {
-            if (m_name == null)
+            if (Path == null)
                 return string.Empty;
 
-            return Protocol + "://" + m_name;
+            return Protocol + "://" + Path;
         }
 
+        /// <summary>
+        /// Resolve the given ipc name to a Unix Domain Socket endpoint.
+        /// A name of "*" requests a unique, system-assigned temporary path (wildcard bind).
+        /// Any other name is used verbatim as the filesystem path.
+        /// </summary>
+        /// <param name="name">the ipc name (filesystem path, or "*" for a temporary path)</param>
+        /// <param name="ip4Only">not applicable to the ipc transport (ignored)</param>
         public void Resolve(string name, bool ip4Only)
         {
-            m_name = name;
+            if (name == "*")
+            {
+                // Wildcard bind: generate a unique temporary socket path,
+                // matching libzmq's behaviour of binding to a temporary file.
+                name = System.IO.Path.Combine(
+                    System.IO.Path.GetTempPath(),
+                    "netmq-" + Guid.NewGuid().ToString("N") + ".sock");
+            }
 
-            int hash = Strings.GetStableHashCode(name);
-            if (hash < 0)
-                hash = -hash;
-            hash = hash%55536;
-            hash += 10000;
-
-            this.Address = new IPEndPoint(IPAddress.Loopback, hash);
+            Path = name;
+            Endpoint = new AsyncIO.UnixEndPoint(name);
         }
 
-        [DisallowNull]
-        public IPEndPoint? Address { get; private set; }
+        /// <summary>
+        /// Get the resolved Unix Domain Socket endpoint, or null if not yet resolved.
+        /// </summary>
+        public AsyncIO.UnixEndPoint? Endpoint { get; private set; }
+
+        /// <summary>
+        /// Get the resolved filesystem path of the socket, or null if not yet resolved.
+        /// </summary>
+        public string? Path { get; private set; }
+
+        /// <summary>
+        /// The ipc transport does not use an IPEndPoint - this is always null.
+        /// </summary>
+        public IPEndPoint? Address => null;
 
         public string Protocol => Core.Address.IpcProtocol;
     }
