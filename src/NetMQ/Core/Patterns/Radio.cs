@@ -128,7 +128,7 @@ namespace NetMQ.Core.Patterns
             private State m_state = State.Group;
             private Msg m_pending = new Msg();
 
-            public RadioSession(IOThread ioThread, bool connect, SocketBase socket,
+            public RadioSession(IIOThread ioThread, bool connect, SocketBase socket,
                 Options options, Address addr) : base(ioThread, connect, socket, options, addr)
             {
             }

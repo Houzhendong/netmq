@@ -66,7 +66,7 @@ namespace NetMQ.Core.Transports.Udp
             m_receiveState = ReceiveState.Active;
         }
 
-        public void Plug(IOThread ioThread, SessionBase session)
+        public void Plug(IIOThread ioThread, SessionBase session)
         {
             m_session = session;
             m_ioObject = new IOObject(null);

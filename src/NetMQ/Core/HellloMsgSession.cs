@@ -4,7 +4,7 @@ namespace NetMQ.Core
     {
         bool m_newPipe;
 
-        public HelloMsgSession(IOThread ioThread, bool connect, SocketBase socket, Options options, Address addr) : 
+        public HelloMsgSession(IIOThread ioThread, bool connect, SocketBase socket, Options options, Address addr) :
             base(ioThread, connect, socket, options, addr)
         {
             m_newPipe = true;

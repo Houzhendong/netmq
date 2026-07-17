@@ -41,7 +41,7 @@ namespace NetMQ.Core.Transports.Pgm
             m_state = State.Idle;
         }
 
-        void IEngine.Plug(IOThread ioThread, SessionBase session)
+        void IEngine.Plug(IIOThread ioThread, SessionBase session)
         {
             Assumes.NotNull(m_handle);
 

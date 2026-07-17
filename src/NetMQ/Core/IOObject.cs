@@ -32,14 +32,14 @@ namespace NetMQ.Core
     /// </summary>
     internal class IOObject : IProactorEvents
     {
-        private IOThread? m_ioThread;
+        private IIOThread? m_ioThread;
         private IProactorEvents? m_handler;
 
         /// <summary>
         /// Create a new IOObject object and plug it into the given IOThread.
         /// </summary>
         /// <param name="ioThread">the IOThread to plug this new IOObject into.</param>
-        public IOObject(IOThread? ioThread)
+        public IOObject(IIOThread? ioThread)
         {
             if (ioThread != null)
                 Plug(ioThread);
@@ -53,7 +53,7 @@ namespace NetMQ.Core
         /// When migrating an object from one I/O thread to another, first
         /// unplug it, then migrate it, then plug it to the new thread.
         /// </remarks>
-        public void Plug(IOThread ioThread)
+        public void Plug(IIOThread ioThread)
         {
             Debug.Assert(ioThread != null);
 
@@ -81,10 +81,19 @@ namespace NetMQ.Core
         /// Add the given socket to the Proactor.
         /// </summary>
         /// <param name="socket">the AsyncSocket to add</param>
+        /// <remarks>
+        /// AddSocket/RemoveSocket are Proactor-specific (there is no Proactor on the
+        /// async I/O-thread path), so - rather than adding Proactor-only members to
+        /// <see cref="IIOThread"/> - we grab the Proactor via a cast back to the
+        /// concrete <see cref="IOThread"/>. This is only ever called on the classic
+        /// (flag-off) engine path, where m_ioThread is always an IOThread.
+        /// </remarks>
         public void AddSocket(AsyncSocket socket)
         {
             Assumes.NotNull(m_ioThread);
-            m_ioThread.Proactor.AddSocket(socket, this);
+            var proactor = (m_ioThread as IOThread)?.Proactor;
+            Assumes.NotNull(proactor);
+            proactor.AddSocket(socket, this);
         }
 
         /// <summary>
@@ -94,7 +103,9 @@ namespace NetMQ.Core
         public void RemoveSocket(AsyncSocket socket)
         {
             Assumes.NotNull(m_ioThread);
-            m_ioThread.Proactor.RemoveSocket(socket);
+            var proactor = (m_ioThread as IOThread)?.Proactor;
+            Assumes.NotNull(proactor);
+            proactor.RemoveSocket(socket);
         }
 
         /// <summary>
@@ -132,7 +143,7 @@ namespace NetMQ.Core
         public void AddTimer(long timeout, int id)
         {
             Assumes.NotNull(m_ioThread);
-            m_ioThread.Proactor.AddTimer(timeout, this, id);
+            m_ioThread.AddTimer(timeout, this, id);
         }
 
         public void SetHandler(IProactorEvents handler)
@@ -143,7 +154,7 @@ namespace NetMQ.Core
         public void CancelTimer(int id)
         {
             Assumes.NotNull(m_ioThread);
-            m_ioThread.Proactor.CancelTimer(this, id);
+            m_ioThread.CancelTimer(this, id);
         }
     }
 }

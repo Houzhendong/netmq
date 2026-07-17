@@ -56,9 +56,32 @@ namespace NetMQ.Monitoring
         }
 
         /// <summary>
+        /// Create a new NetMQMonitorSocketEventArgs for an event raised by the async engine, which
+        /// hands over a BCL <see cref="System.Net.Sockets.Socket"/> rather than an
+        /// <see cref="AsyncSocket"/>.
+        /// </summary>
+        /// <param name="monitor">The <see cref="NetMQMonitor"/> that raised this event.</param>
+        /// <param name="address">The address of the event.</param>
+        /// <param name="socketEvent">The type of socket event that occurred.</param>
+        /// <param name="netSocket">The BCL socket upon which this event occurred.</param>
+        public NetMQMonitorSocketEventArgs(NetMQMonitor monitor, string address, System.Net.Sockets.Socket? netSocket, SocketEvents socketEvent)
+            : base(monitor, address, socketEvent)
+        {
+            NetSocket = netSocket;
+        }
+
+        /// <summary>
         /// Gets the socket upon which this event occurred.
         /// </summary>
         public AsyncSocket? Socket { get; }
+
+        /// <summary>
+        /// Gets the BCL socket upon which this event occurred, when this event was raised by the
+        /// async engine (<c>NETMQ_ASYNC_ENGINE=1</c> / <see cref="NetMQConfig.UseAsyncEngine"/>).
+        /// <c>null</c> for events raised by the classic engine, which populates
+        /// <see cref="Socket"/> instead.
+        /// </summary>
+        public System.Net.Sockets.Socket? NetSocket { get; }
     }
 
     /// <summary>

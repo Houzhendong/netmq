@@ -587,6 +587,31 @@ namespace NetMQ.Core
                 {
                     case Address.TcpProtocol:
                         {
+#if NET
+                            if (Ctx.UseAsyncEngine)
+                            {
+                                var asyncListener = new Transports.Tcp.AsyncTcpListener(ioThread, this, m_options);
+
+                                try
+                                {
+                                    asyncListener.SetAddress(address);
+                                    m_port = asyncListener.Port;
+
+                                    // Recreate the address string (localhost:1234) in case the port was system-assigned
+                                    addr = $"tcp://{address.Substring(0, address.IndexOf(':'))}:{m_port}";
+                                }
+                                catch (NetMQException ex)
+                                {
+                                    asyncListener.Destroy();
+                                    EventBindFailed(addr, ex.ErrorCode);
+                                    throw;
+                                }
+
+                                m_options.LastEndpoint = asyncListener.Address;
+                                AddEndpoint(addr, asyncListener, null);
+                                break;
+                            }
+#endif
                             var listener = new TcpListener(ioThread, this, m_options);
 
                             try
@@ -630,6 +655,28 @@ namespace NetMQ.Core
                         }
                     case Address.IpcProtocol:
                         {
+#if NET
+                            if (Ctx.UseAsyncEngine)
+                            {
+                                var asyncListener = new Transports.Ipc.AsyncIpcListener(ioThread, this, m_options);
+
+                                try
+                                {
+                                    asyncListener.SetAddress(address);
+                                    m_port = asyncListener.Port;
+                                }
+                                catch (NetMQException ex)
+                                {
+                                    asyncListener.Destroy();
+                                    EventBindFailed(addr, ex.ErrorCode);
+                                    throw;
+                                }
+
+                                m_options.LastEndpoint = asyncListener.Address;
+                                AddEndpoint(addr, asyncListener, null);
+                                break;
+                            }
+#endif
                             var listener = new IpcListener(ioThread, this, m_options);
 
                             try
@@ -1692,6 +1739,19 @@ namespace NetMQ.Core
             MonitorEvent(new MonitorEvent(SocketEvents.Connected, addr, ch));
         }
 
+        /// <summary>
+        /// Overload of <see cref="EventConnected(string, AsyncSocket)"/> for the async engine's
+        /// listeners/connectors, which hand over a connected BCL <see cref="Socket"/> rather than
+        /// an <see cref="AsyncSocket"/>.
+        /// </summary>
+        public void EventConnected(string addr, Socket ch)
+        {
+            if ((m_monitorEvents & SocketEvents.Connected) == 0)
+                return;
+
+            MonitorEvent(new MonitorEvent(SocketEvents.Connected, addr, ch));
+        }
+
         public void EventConnectDelayed(string addr, ErrorCode errno)
         {
             if ((m_monitorEvents & SocketEvents.ConnectDelayed) == 0)
@@ -1716,6 +1776,19 @@ namespace NetMQ.Core
             MonitorEvent(new MonitorEvent(SocketEvents.Listening, addr, ch));
         }
 
+        /// <summary>
+        /// Overload of <see cref="EventListening(string, AsyncSocket)"/> for the async engine's
+        /// listeners, which listen on a BCL <see cref="Socket"/> rather than an
+        /// <see cref="AsyncSocket"/>.
+        /// </summary>
+        public void EventListening(string addr, Socket ch)
+        {
+            if ((m_monitorEvents & SocketEvents.Listening) == 0)
+                return;
+
+            MonitorEvent(new MonitorEvent(SocketEvents.Listening, addr, ch));
+        }
+
         public void EventBindFailed(string addr, ErrorCode errno)
         {
             if ((m_monitorEvents & SocketEvents.BindFailed) == 0)
@@ -1725,6 +1798,19 @@ namespace NetMQ.Core
         }
 
         public void EventAccepted(string addr, AsyncSocket ch)
+        {
+            if ((m_monitorEvents & SocketEvents.Accepted) == 0)
+                return;
+
+            MonitorEvent(new MonitorEvent(SocketEvents.Accepted, addr, ch));
+        }
+
+        /// <summary>
+        /// Overload of <see cref="EventAccepted(string, AsyncSocket)"/> for the async engine's
+        /// listeners, which accept a BCL <see cref="Socket"/> rather than an
+        /// <see cref="AsyncSocket"/>.
+        /// </summary>
+        public void EventAccepted(string addr, Socket ch)
         {
             if ((m_monitorEvents & SocketEvents.Accepted) == 0)
                 return;
@@ -1748,6 +1834,19 @@ namespace NetMQ.Core
             MonitorEvent(new MonitorEvent(SocketEvents.Closed, addr, ch));
         }
 
+        /// <summary>
+        /// Overload of <see cref="EventClosed(string, AsyncSocket)"/> for the async engine's
+        /// listeners/connectors/engine, whose underlying handle is a BCL <see cref="Socket"/>
+        /// rather than an <see cref="AsyncSocket"/>.
+        /// </summary>
+        public void EventClosed(string addr, Socket ch)
+        {
+            if ((m_monitorEvents & SocketEvents.Closed) == 0)
+                return;
+
+            MonitorEvent(new MonitorEvent(SocketEvents.Closed, addr, ch));
+        }
+
         public void EventCloseFailed(string addr, ErrorCode errno)
         {
             if ((m_monitorEvents & SocketEvents.CloseFailed) == 0)
@@ -1757,6 +1856,19 @@ namespace NetMQ.Core
         }
 
         public void EventDisconnected(string addr, AsyncSocket ch)
+        {
+            if ((m_monitorEvents & SocketEvents.Disconnected) == 0)
+                return;
+
+            MonitorEvent(new MonitorEvent(SocketEvents.Disconnected, addr, ch));
+        }
+
+        /// <summary>
+        /// Overload of <see cref="EventDisconnected(string, AsyncSocket)"/> for the async
+        /// engine, whose underlying handle is a BCL <see cref="Socket"/> rather than an
+        /// <see cref="AsyncSocket"/>.
+        /// </summary>
+        public void EventDisconnected(string addr, Socket ch)
         {
             if ((m_monitorEvents & SocketEvents.Disconnected) == 0)
                 return;

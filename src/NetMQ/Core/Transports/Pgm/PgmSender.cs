@@ -42,7 +42,7 @@ namespace NetMQ.Core.Transports.Pgm
         private int m_currentReconnectIvl;
         private bool m_moreFlag;
 
-        public PgmSender(IOThread ioThread, Options options, Address addr, bool delayedStart)
+        public PgmSender(IIOThread ioThread, Options options, Address addr, bool delayedStart)
             : base(ioThread)
         {
             m_options = options;
@@ -82,7 +82,7 @@ namespace NetMQ.Core.Transports.Pgm
             m_outBuffer = new ByteArraySegment(new byte[m_outBufferSize]);
         }
 
-        public void Plug(IOThread ioThread, SessionBase session)
+        public void Plug(IIOThread ioThread, SessionBase session)
         {
             m_session = session;
 

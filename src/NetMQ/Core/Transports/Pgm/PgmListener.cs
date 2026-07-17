@@ -13,7 +13,7 @@ namespace NetMQ.Core.Transports.Pgm
         private PgmSocket? m_acceptedSocket;
         private PgmAddress? m_address;
 
-        public PgmListener(IOThread ioThread, SocketBase socket, Options options)
+        public PgmListener(IIOThread ioThread, SocketBase socket, Options options)
             : base(ioThread, options)
         {
             m_socket = socket;
@@ -147,7 +147,7 @@ namespace NetMQ.Core.Transports.Pgm
 
                 var pgmSession = new PgmSession(m_acceptedSocket, m_options);
 
-                IOThread? ioThread = ChooseIOThread(m_options.Affinity);
+                IIOThread? ioThread = ChooseIOThread(m_options.Affinity);
 
                 Assumes.NotNull(ioThread);
                 Assumes.NotNull(m_handle);

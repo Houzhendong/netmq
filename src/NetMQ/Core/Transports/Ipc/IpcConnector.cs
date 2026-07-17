@@ -92,7 +92,7 @@ namespace NetMQ.Core.Transports.Ipc
         /// <param name="options">Options that define this new IpcConnector</param>
         /// <param name="addr">the Address for this Ipc to connect to</param>
         /// <param name="delayedStart">this boolean flag dictates whether to wait before trying to connect</param>
-        public IpcConnector(IOThread ioThread, SessionBase session, Options options, Address addr, bool delayedStart)
+        public IpcConnector(IIOThread ioThread, SessionBase session, Options options, Address addr, bool delayedStart)
             : base(ioThread, options)
         {
             m_ioObject = new IOObject(ioThread);

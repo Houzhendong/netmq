@@ -92,7 +92,7 @@ namespace NetMQ.Core.Transports.Tcp
         /// <param name="options">Options that define this new TcpC</param>
         /// <param name="addr">the Address for this Tcp to connect to</param>
         /// <param name="delayedStart">this boolean flag dictates whether to wait before trying to connect</param>
-        public TcpConnector(IOThread ioThread, SessionBase session, Options options, Address addr, bool delayedStart)
+        public TcpConnector(IIOThread ioThread, SessionBase session, Options options, Address addr, bool delayedStart)
             : base(ioThread, options)
         {
             m_ioObject = new IOObject(ioThread);

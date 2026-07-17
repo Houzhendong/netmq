@@ -18,7 +18,7 @@ namespace NetMQ.Core.Transports.Udp
         private string? m_endpoint;
         private int m_port;
 
-        public UdpListener(IOThread ioThread, SocketBase socket, Options options)
+        public UdpListener(IIOThread ioThread, SocketBase socket, Options options)
             : base(ioThread, options)
         {
             m_ioObject = new IOObject(ioThread);
@@ -49,7 +49,7 @@ namespace NetMQ.Core.Transports.Udp
             m_ioObject.SetHandler(this);
 
             // Create a session for this UDP endpoint
-            IOThread? ioThread = ChooseIOThread(m_options.Affinity);
+            IIOThread? ioThread = ChooseIOThread(m_options.Affinity);
             Assumes.NotNull(ioThread);
 
             var paddr = new Address(Core.Address.UdpProtocol, m_address.Address!.ToString());

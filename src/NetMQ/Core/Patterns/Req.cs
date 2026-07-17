@@ -308,7 +308,7 @@ namespace NetMQ.Core.Patterns
 
             private State m_state;
 
-            public ReqSession(IOThread ioThread, bool connect, SocketBase socket, Options options, Address addr)
+            public ReqSession(IIOThread ioThread, bool connect, SocketBase socket, Options options, Address addr)
                 : base(ioThread, connect, socket, options, addr)
             {
                 m_state = State.Bottom;

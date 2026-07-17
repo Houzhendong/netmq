@@ -30,7 +30,7 @@ namespace NetMQ.Core.Transports
         /// <summary>
         /// Plug the engine to the session.
         /// </summary>
-        void Plug(IOThread ioThread, SessionBase session);
+        void Plug(IIOThread ioThread, SessionBase session);
 
         /// <summary>
         /// Terminate and deallocate the engine. Note that 'detached'

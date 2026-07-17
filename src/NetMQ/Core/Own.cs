@@ -92,8 +92,15 @@ namespace NetMQ.Core
         /// Note that the owner is unspecified in the constructor. It'll be assigned later on using <see cref="SetOwner"/>
         /// when the object is plugged in.
         /// </remarks>
-        protected Own(IOThread ioThread, Options options)
-            : base(ioThread)
+        /// <remarks>
+        /// The <see cref="ZObject(ZObject)"/> base overload needs the ctx/thread-id of the
+        /// I/O thread we are plugged into, which <see cref="IIOThread"/> does not expose
+        /// directly. Both concrete implementations (IOThread and, on the async path,
+        /// AsyncIOThread) are themselves ZObjects, so we recover that via a runtime cast
+        /// here rather than widening the interface with members Own doesn't otherwise need.
+        /// </remarks>
+        protected Own(IIOThread ioThread, Options options)
+            : base((ZObject)ioThread)
         {
             m_options = options;
         }

@@ -23,7 +23,7 @@ using NetMQ.Core.Utils;
 
 namespace NetMQ.Core
 {
-    internal sealed class IOThread : ZObject, IMailboxEvent
+    internal sealed class IOThread : ZObject, IMailboxEvent, IIOThread
     {
         /// <summary>
         /// I/O thread accesses incoming commands via this mailbox.
@@ -80,6 +80,26 @@ namespace NetMQ.Core
         public IMailbox Mailbox => m_mailbox;
 
         public int Load => m_proactor.Load;
+
+        public int Tid => ThreadId;
+
+        /// <summary>
+        /// Delegates to the Proactor - this is exactly what IOObject does today, so
+        /// there is zero behavior change; it merely lets IOObject go through the
+        /// IIOThread interface instead of reaching for the concrete IOThread type.
+        /// </summary>
+        public void AddTimer(long timeout, IProactorEvents sink, int id)
+        {
+            m_proactor.AddTimer(timeout, sink, id);
+        }
+
+        /// <summary>
+        /// Delegates to the Proactor - see <see cref="AddTimer"/>.
+        /// </summary>
+        public void CancelTimer(IProactorEvents sink, int id)
+        {
+            m_proactor.CancelTimer(sink, id);
+        }
 
         protected override void ProcessStop()
         {

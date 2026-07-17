@@ -248,7 +248,7 @@ namespace NetMQ.Core.Transports
             }
         }
 
-        public void Plug(IOThread ioThread, SessionBase session)
+        public void Plug(IIOThread ioThread, SessionBase session)
         {
             Debug.Assert(!m_plugged);
             m_plugged = true;

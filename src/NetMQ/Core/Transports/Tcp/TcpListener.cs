@@ -73,7 +73,7 @@ namespace NetMQ.Core.Transports.Tcp
         /// <param name="ioThread">the IOThread for this to live within</param>
         /// <param name="socket">a SocketBase to listen on</param>
         /// <param name="options">socket-related Options</param>
-        public TcpListener(IOThread ioThread, SocketBase socket, Options options)
+        public TcpListener(IIOThread ioThread, SocketBase socket, Options options)
             : base(ioThread, options)
         {
             m_ioObject = new IOObject(ioThread);
@@ -234,7 +234,7 @@ namespace NetMQ.Core.Transports.Tcp
 
                     // Choose I/O thread to run connector in. Given that we are already
                     // running in an I/O thread, there must be at least one available.
-                    IOThread? ioThread = ChooseIOThread(m_options.Affinity);
+                    IIOThread? ioThread = ChooseIOThread(m_options.Affinity);
 
                     Assumes.NotNull(ioThread);
 

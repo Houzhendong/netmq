@@ -187,7 +187,7 @@ namespace NetMQ.Core.Patterns
             private State m_state = State.Group;
             private string m_group = String.Empty;
             
-            public DishSession(IOThread ioThread, bool connect, SocketBase socket, Options options, Address addr) : base(ioThread, connect, socket, options, addr)
+            public DishSession(IIOThread ioThread, bool connect, SocketBase socket, Options options, Address addr) : base(ioThread, connect, socket, options, addr)
             {
             }
 

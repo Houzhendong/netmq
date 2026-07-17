@@ -112,7 +112,7 @@ namespace NetMQ.Monitoring
             switch (monitorEvent.Event)
             {
                 case SocketEvents.Connected:
-                    InvokeEvent(Connected, new NetMQMonitorSocketEventArgs(this, monitorEvent.Addr, monitorEvent.ConvertArg<AsyncSocket>(), SocketEvents.Connected));
+                    InvokeEvent(Connected, MakeSocketEventArgs(monitorEvent, SocketEvents.Connected));
                     break;
                 case SocketEvents.ConnectDelayed:
                     InvokeEvent(ConnectDelayed, new NetMQMonitorErrorEventArgs(this, monitorEvent.Addr, (ErrorCode)monitorEvent.ConvertArg<int>(), SocketEvents.ConnectDelayed));
@@ -121,29 +121,47 @@ namespace NetMQ.Monitoring
                     InvokeEvent(ConnectRetried, new NetMQMonitorIntervalEventArgs(this, monitorEvent.Addr, monitorEvent.ConvertArg<int>(), SocketEvents.ConnectRetried));
                     break;
                 case SocketEvents.Listening:
-                    InvokeEvent(Listening, new NetMQMonitorSocketEventArgs(this, monitorEvent.Addr, monitorEvent.ConvertArg<AsyncSocket>(), SocketEvents.Listening));
+                    InvokeEvent(Listening, MakeSocketEventArgs(monitorEvent, SocketEvents.Listening));
                     break;
                 case SocketEvents.BindFailed:
                     InvokeEvent(BindFailed, new NetMQMonitorErrorEventArgs(this, monitorEvent.Addr, (ErrorCode)monitorEvent.ConvertArg<int>(), SocketEvents.BindFailed));
                     break;
                 case SocketEvents.Accepted:
-                    InvokeEvent(Accepted, new NetMQMonitorSocketEventArgs(this, monitorEvent.Addr, monitorEvent.ConvertArg<AsyncSocket>(), SocketEvents.Accepted));
+                    InvokeEvent(Accepted, MakeSocketEventArgs(monitorEvent, SocketEvents.Accepted));
                     break;
                 case SocketEvents.AcceptFailed:
                     InvokeEvent(AcceptFailed, new NetMQMonitorErrorEventArgs(this, monitorEvent.Addr, (ErrorCode)monitorEvent.ConvertArg<int>(), SocketEvents.AcceptFailed));
                     break;
                 case SocketEvents.Closed:
-                    InvokeEvent(Closed, new NetMQMonitorSocketEventArgs(this, monitorEvent.Addr, monitorEvent.ConvertArg<AsyncSocket>(), SocketEvents.Closed));
+                    InvokeEvent(Closed, MakeSocketEventArgs(monitorEvent, SocketEvents.Closed));
                     break;
                 case SocketEvents.CloseFailed:
                     InvokeEvent(CloseFailed, new NetMQMonitorErrorEventArgs(this, monitorEvent.Addr, (ErrorCode)monitorEvent.ConvertArg<int>(), SocketEvents.CloseFailed));
                     break;
                 case SocketEvents.Disconnected:
-                    InvokeEvent(Disconnected, new NetMQMonitorSocketEventArgs(this, monitorEvent.Addr, monitorEvent.ConvertArg<AsyncSocket>(), SocketEvents.Disconnected));
+                    InvokeEvent(Disconnected, MakeSocketEventArgs(monitorEvent, SocketEvents.Disconnected));
                     break;
                 default:
                     throw new Exception("unknown event " + monitorEvent.Event);
             }
+        }
+
+        /// <summary>
+        /// Builds a <see cref="NetMQMonitorSocketEventArgs"/> from a raw <see cref="MonitorEvent"/>
+        /// whose payload may be either an <see cref="AsyncSocket"/> (classic engine) or a BCL
+        /// <see cref="System.Net.Sockets.Socket"/> (async engine, see
+        /// <see cref="NetMQConfig.UseAsyncEngine"/>) - populating whichever of
+        /// <see cref="NetMQMonitorSocketEventArgs.Socket"/> /
+        /// <see cref="NetMQMonitorSocketEventArgs.NetSocket"/> applies.
+        /// <see cref="MonitorEvent.ConvertArg{T}"/> throws on a type mismatch, so the payload's
+        /// runtime type must be checked before picking which one to request.
+        /// </summary>
+        private NetMQMonitorSocketEventArgs MakeSocketEventArgs(MonitorEvent monitorEvent, SocketEvents socketEvent)
+        {
+            if (monitorEvent.Arg is System.Net.Sockets.Socket netSocket)
+                return new NetMQMonitorSocketEventArgs(this, monitorEvent.Addr, netSocket, socketEvent);
+
+            return new NetMQMonitorSocketEventArgs(this, monitorEvent.Addr, monitorEvent.ConvertArg<AsyncSocket>(), socketEvent);
         }
 
         private void InvokeEvent<T>(EventHandler<T>? handler, T args) where T : NetMQMonitorEventArgs

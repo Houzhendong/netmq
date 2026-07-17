@@ -108,7 +108,7 @@ namespace NetMQ.Core
         /// <summary>
         /// List of I/O threads.
         /// </summary>
-        private readonly List<IOThread> m_ioThreads = new List<IOThread>();
+        private readonly List<IIOThread> m_ioThreads = new List<IIOThread>();
 
         /// <summary>
         /// Length of the mailbox-array.
@@ -149,6 +149,16 @@ namespace NetMQ.Core
         /// The number of I/O threads to launch.
         /// </summary>
         private int m_ioThreadCount = DefaultIOThreads;
+
+        /// <summary>
+        /// Whether sockets created by this context should be serviced by the new,
+        /// async-loop-based I/O thread (<c>AsyncIOThread</c>, available on modern .NET)
+        /// instead of the classic, Proactor-based <see cref="IOThread"/>. Like
+        /// <see cref="IOThreadCount"/>, this is only consulted when the I/O threads are
+        /// actually created (the first <see cref="CreateSocket"/> call), so it must be
+        /// set before then to have any effect.
+        /// </summary>
+        private bool m_useAsyncEngine;
 
         /// <summary>
         /// This object is used to synchronize access to context options.
@@ -216,10 +226,10 @@ namespace NetMQ.Core
             Monitor.Exit(m_slotSync);
 
             // Deallocate the resources.
-            foreach (IOThread it in m_ioThreads)
+            foreach (IIOThread it in m_ioThreads)
                 it.Stop();
 
-            foreach (IOThread it in m_ioThreads)
+            foreach (IIOThread it in m_ioThreads)
                 it.Destroy();
 
             m_reaper?.Destroy();
@@ -248,6 +258,20 @@ namespace NetMQ.Core
                     throw new ArgumentOutOfRangeException(nameof(value), value, "Must be greater than zero");
                 lock (m_optSync)
                     m_maxSockets = value;
+            }
+        }
+
+        /// <summary>
+        /// Get or set whether this context's I/O threads should use the new async-loop-based
+        /// engine instead of the classic Proactor-based one. See <see cref="m_useAsyncEngine"/>.
+        /// </summary>
+        public bool UseAsyncEngine
+        {
+            get => m_useAsyncEngine;
+            set
+            {
+                lock (m_optSync)
+                    m_useAsyncEngine = value;
             }
         }
 
@@ -293,7 +317,16 @@ namespace NetMQ.Core
                     // Create I/O thread objects and launch them.
                     for (int i = 2; i != ios + 2; i++)
                     {
-                        var ioThread = new IOThread(this, i);
+                        IIOThread ioThread;
+#if NET
+                        // The async engine is only available on modern .NET; on net472/
+                        // netstandard2.1 the flag is simply ignored and we always fall
+                        // through to the classic, Proactor-based IOThread below.
+                        if (m_useAsyncEngine)
+                            ioThread = new AsyncIOThread(this, i);
+                        else
+#endif
+                            ioThread = new IOThread(this, i);
                         //alloc_Debug.Assert(io_thread);
                         m_ioThreads.Add(ioThread);
                         m_slots[i] = ioThread.Mailbox;
@@ -391,18 +424,18 @@ namespace NetMQ.Core
         }
 
         /// <summary>
-        /// Returns the <see cref="IOThread"/> that is the least busy at the moment.
+        /// Returns the <see cref="IIOThread"/> that is the least busy at the moment.
         /// </summary>
         /// <paramref name="affinity">Which threads are eligible (0 = all).</paramref>
         /// <returns>The least busy thread, or <c>null</c> if none is available.</returns>
-        public IOThread? ChooseIOThread(long affinity)
+        public IIOThread? ChooseIOThread(long affinity)
         {
             if (m_ioThreads.Count == 0)
                 return null;
 
             // Find the I/O thread with minimum load.
             int minLoad = -1;
-            IOThread? selectedIOThread = null;
+            IIOThread? selectedIOThread = null;
 
             for (int i = 0; i != m_ioThreads.Count; i++)
             {

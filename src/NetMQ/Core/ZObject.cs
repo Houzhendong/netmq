@@ -95,11 +95,11 @@ namespace NetMQ.Core
         }
 
         /// <summary>
-        /// Returns the <see cref="IOThread"/> that is the least busy at the moment.
+        /// Returns the <see cref="IIOThread"/> that is the least busy at the moment.
         /// </summary>
         /// <paramref name="affinity">Which threads are eligible (0 = all).</paramref>
         /// <returns>The least busy thread, or <c>null</c> if none is available.</returns>
-        protected IOThread? ChooseIOThread(long affinity)
+        protected IIOThread? ChooseIOThread(long affinity)
         {
             return m_ctx.ChooseIOThread(affinity);
         }

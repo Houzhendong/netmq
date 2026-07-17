@@ -13,12 +13,16 @@ namespace NetMQ
         private static Ctx? s_ctx;
         private static int s_threadPoolSize = Ctx.DefaultIOThreads;
         private static int s_maxSockets = Ctx.DefaultMaxSockets;
+        private static bool s_useAsyncEngine;
         private static readonly object s_sync;
 
         static NetMQConfig()
         {
             s_sync = new object();
             s_linger = TimeSpan.Zero;
+
+            // Opt-in to the new async engine without touching code: set NETMQ_ASYNC_ENGINE=1.
+            s_useAsyncEngine = Environment.GetEnvironmentVariable("NETMQ_ASYNC_ENGINE") == "1";
         }
 
         internal static Ctx Context
@@ -36,7 +40,8 @@ namespace NetMQ
                     return s_ctx ??= new Ctx
                     {
                         IOThreadCount = s_threadPoolSize,
-                        MaxSockets = s_maxSockets
+                        MaxSockets = s_maxSockets,
+                        UseAsyncEngine = s_useAsyncEngine
                     };
                 }
             }
@@ -136,6 +141,38 @@ namespace NetMQ
 
                     if (s_ctx != null)
                         s_ctx.MaxSockets = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Opt-in to the new async-loop-based I/O engine (available on modern .NET builds)
+        /// instead of the classic Proactor-based engine used by default on every target
+        /// framework. Defaults to <c>false</c>, initialized from the <c>NETMQ_ASYNC_ENGINE</c>
+        /// environment variable (set it to <c>"1"</c> to opt in without touching code).
+        /// </summary>
+        /// <remarks>
+        /// Like <see cref="ThreadPoolSize"/>, this is only consulted when the context's I/O
+        /// threads are actually created (the first socket created against it), so it must be
+        /// set before then - ideally at start-up - to have any effect. On target frameworks
+        /// where the async engine doesn't exist (net472, netstandard2.1) this flag is silently
+        /// ignored and the classic engine is used regardless.
+        /// </remarks>
+        public static bool UseAsyncEngine
+        {
+            get
+            {
+                lock (s_sync)
+                    return s_useAsyncEngine;
+            }
+            set
+            {
+                lock (s_sync)
+                {
+                    s_useAsyncEngine = value;
+
+                    if (s_ctx != null)
+                        s_ctx.UseAsyncEngine = value;
                 }
             }
         }

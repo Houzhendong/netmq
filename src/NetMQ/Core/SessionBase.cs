@@ -92,7 +92,7 @@ namespace NetMQ.Core
         /// I/O thread the session is living in. It will be used to plug in
         /// the engines into the same thread.
         /// </summary>
-        private readonly IOThread m_ioThread;
+        private readonly IIOThread m_ioThread;
 
         /// <summary>
         /// ID of the linger timer (0x20)
@@ -122,7 +122,7 @@ namespace NetMQ.Core
         /// <param name="addr">an <c>Address</c> object that specifies the protocol and address to connect to</param>
         /// <returns>the newly-created instance of whichever subclass of SessionBase is specified by the options</returns>
         /// <exception cref="InvalidException">The socket must be of the correct type.</exception>
-        public static SessionBase Create(IOThread ioThread, bool connect, SocketBase socket, Options options, Address addr)
+        public static SessionBase Create(IIOThread ioThread, bool connect, SocketBase socket, Options options, Address addr)
         {
             switch (options.SocketType)
             {
@@ -165,7 +165,7 @@ namespace NetMQ.Core
         /// <param name="socket">the socket to contain</param>
         /// <param name="options">Options that dictate the settings of this session</param>
         /// <param name="addr">an Address that dictates the protocol and IP-address to use when connecting</param>
-        public SessionBase(IOThread ioThread, bool connect, SocketBase socket, Options options, Address addr)
+        public SessionBase(IIOThread ioThread, bool connect, SocketBase socket, Options options, Address addr)
             : base(ioThread, options)
         {
             m_ioObject = new IOObject(ioThread);
@@ -554,7 +554,7 @@ namespace NetMQ.Core
 
             // Choose I/O thread to run connector in. Given that we are already
             // running in an I/O thread, there must be at least one available.
-            IOThread? ioThread = ChooseIOThread(m_options.Affinity);
+            IIOThread? ioThread = ChooseIOThread(m_options.Affinity);
             Assumes.NotNull(ioThread);
 
             // Create the connector object.
@@ -563,11 +563,25 @@ namespace NetMQ.Core
             {
                 case Address.TcpProtocol:
                 {
+#if NET
+                    if (Ctx.UseAsyncEngine)
+                    {
+                        LaunchChild(new Transports.Tcp.AsyncTcpConnector(ioThread, this, m_options, m_addr, wait));
+                        return;
+                    }
+#endif
                     LaunchChild(new TcpConnector(ioThread, this, m_options, m_addr, wait));
                     return;
                 }
                 case Address.IpcProtocol:
                 {
+#if NET
+                    if (Ctx.UseAsyncEngine)
+                    {
+                        LaunchChild(new Transports.Ipc.AsyncIpcConnector(ioThread, this, m_options, m_addr, wait));
+                        return;
+                    }
+#endif
                     LaunchChild(new IpcConnector(ioThread, this, m_options, m_addr, wait));
                     return;
                 }

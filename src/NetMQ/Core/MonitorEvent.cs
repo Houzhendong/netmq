@@ -11,6 +11,15 @@ namespace NetMQ.Core
         private const int ValueInteger = 1;
         private const int ValueChannel = 2;
 
+        /// <summary>
+        /// Value-kind for a weak reference to a BCL <see cref="System.Net.Sockets.Socket"/>,
+        /// used by the async engine's monitor events (which hand over a connected/accepted/
+        /// listening BCL socket rather than an <see cref="AsyncSocket"/>). Serialised the same
+        /// way as <see cref="ValueChannel"/> (a weak <see cref="GCHandle"/> encoded as an
+        /// IntPtr-sized integer) - only the runtime type recovered on <see cref="Read"/> differs.
+        /// </summary>
+        private const int ValueNetSocket = 3;
+
         private readonly SocketEvents m_monitorEvent;
         private readonly string m_addr;
         private readonly object? m_arg;
@@ -41,6 +50,16 @@ namespace NetMQ.Core
         {
         }
 
+        /// <summary>
+        /// Create a MonitorEvent carrying a BCL <see cref="System.Net.Sockets.Socket"/> - used by
+        /// the async engine and its listeners/connectors, which hand over a connected BCL socket
+        /// rather than an <see cref="AsyncSocket"/>.
+        /// </summary>
+        public MonitorEvent(SocketEvents monitorEvent, string addr, System.Net.Sockets.Socket arg)
+            : this(monitorEvent, addr, (object)arg)
+        {
+        }
+
         private MonitorEvent(SocketEvents monitorEvent, string addr, object? arg)
         {
             m_monitorEvent = monitorEvent;
@@ -51,6 +70,8 @@ namespace NetMQ.Core
                 m_flag = ValueInteger;
             else if (arg is AsyncSocket)
                 m_flag = ValueChannel;
+            else if (arg is System.Net.Sockets.Socket)
+                m_flag = ValueNetSocket;
             else
                 m_flag = 0;
         }
@@ -67,7 +88,7 @@ namespace NetMQ.Core
 
             if (m_flag == ValueInteger)
                 size += 4;
-            else if (m_flag == ValueChannel)
+            else if (m_flag == ValueChannel || m_flag == ValueNetSocket)
                 size += s_sizeOfIntPtr;
 
             int pos = 0;
@@ -93,7 +114,7 @@ namespace NetMQ.Core
             {
                 buffer.PutInteger(Endianness.Little, (int)m_arg!, pos);
             }
-            else if (m_flag == ValueChannel)
+            else if (m_flag == ValueChannel || m_flag == ValueNetSocket)
             {
                 GCHandle handle = GCHandle.Alloc(m_arg, GCHandleType.Weak);
 
@@ -147,6 +168,24 @@ namespace NetMQ.Core
                 if (handle.IsAllocated)
                 {
                     socket = handle.Target as AsyncSocket;
+                }
+
+                handle.Free();
+
+                arg = socket;
+            }
+            else if (flag == ValueNetSocket)
+            {
+                IntPtr value = s_sizeOfIntPtr == 4
+                    ? new IntPtr(data.GetInteger(Endianness.Little, pos))
+                    : new IntPtr(data.GetLong(Endianness.Little, pos));
+
+                GCHandle handle = GCHandle.FromIntPtr(value);
+                System.Net.Sockets.Socket? socket = null;
+
+                if (handle.IsAllocated)
+                {
+                    socket = handle.Target as System.Net.Sockets.Socket;
                 }
 
                 handle.Free();
